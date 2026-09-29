@@ -175,7 +175,7 @@ export default function Home() {
             </div>
           )}
         </div>
-        <pre className=" text-[10px] border border-slate-800 p-2 overflow-auto">
+        <pre className=" text-[10px] border border-slate-800 p-2 overflow-auto text-slate-200">
           {JSON.stringify(articles, null, 2)}
         </pre>
       </div>

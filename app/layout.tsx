@@ -29,8 +29,8 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
     >
-      <body className="min-h-full flex flex-col bg-slate-950 text-slate-100 font-sans">
-        <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-slate-950/70 border-b border-slate-800">
+      <body className="min-h-full flex flex-col bg-slate-900 text-slate-100 font-sans">
+        <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-slate-950/70 border-b border-slate-800 text-slate-200">
           <div className="container mx-auto px-4 h-16 flex items-center justify-between">
             <div className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400">
               Directus OpenSearch Demo
@@ -84,7 +84,7 @@ export default function RootLayout({
             </nav>
           </div>
         </header>
-        <main className="flex-1 w-full max-w-6xl mx-auto p-6 md:p-10">
+        <main className="flex-1 w-full max-w-6xl mx-auto p-6 md:p-10 bg-black">
           {children}
         </main>
       </body>

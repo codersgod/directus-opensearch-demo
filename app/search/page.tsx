@@ -191,7 +191,7 @@ export default function SearchPage() {
             </div>
           )}
         </div>
-        <div className="border border-slate-800 rounded-xl p-4 overflow-auto h-full">
+        <div className="border border-slate-800 rounded-xl p-4 overflow-auto h-full text-slate-300">
           <pre className=" text-[10px]">{JSON.stringify(results, null, 2)}</pre>
         </div>
       </div>
