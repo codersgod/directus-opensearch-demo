@@ -100,7 +100,7 @@ function Note({ children }: { children: React.ReactNode }) {
       <p className="text-xs font-bold uppercase tracking-wider mb-1 text-blue-400/80">
         📝 Note
       </p>
-      <p className="text-sm leading-relaxed text-blue-200/90">{children}</p>
+      <div className="text-sm leading-relaxed text-blue-200/90">{children}</div>
     </div>
   );
 }

@@ -35,31 +35,31 @@ export default function RootLayout({
             <div className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400">
               Directus OpenSearch Demo
             </div>
-            <div className="flex gap-4">
+            <div className="flex gap-4 max-h-10">
               <Link
                 href="/learn_directus"
-                className="transition-colors bg-transparent hover:bg-gradient-to-r from-blue-700 to-violet-700 border rounded-md p-2 border-slate-200 "
+                className="transition-colors bg-transparent hover:bg-gradient-to-r from-blue-700 to-violet-700 border rounded-md p-2 border-slate-200 w-fit flex "
               >
                 <SiDirectus className="inline-block mr-2" />
                  Directus
               </Link>
               <Link
                 href="/learn_opensearch"
-                className="transition-colors bg-transparent hover:bg-gradient-to-r from-blue-700 to-violet-700 border rounded-md p-2 border-slate-200 "
+                className="transition-colors bg-transparent hover:bg-gradient-to-r from-blue-700 to-violet-700 border rounded-md p-2 border-slate-200 w-fit flex"
               >
                 <SiOpensearch className="inline-block mr-2" />
                  OpenSearch
               </Link>
               <Link
                 href="/learn_postgresql"
-                className="transition-colors bg-transparent hover:bg-gradient-to-r from-blue-700 to-violet-700 border rounded-md p-2 border-slate-200 "
+                className="transition-colors bg-transparent hover:bg-gradient-to-r from-blue-700 to-violet-700 border rounded-md p-2 border-slate-200 w-fit flex"
               >
                 <SiPostgresql  className="inline-block mr-2" />
                  PostgreSQL
               </Link>
               <Link
                 href="/learn_react_router"
-                className="transition-colors bg-transparent hover:bg-gradient-to-r from-blue-700 to-violet-700 border rounded-md p-2 border-slate-200 "
+                className="transition-colors bg-transparent hover:bg-gradient-to-r from-blue-700 to-violet-700 border rounded-md p-2 border-slate-200 w-fit flex"
               >
                 <SiReactrouter   className="inline-block mr-2" />
                  React Router
@@ -84,7 +84,7 @@ export default function RootLayout({
             </nav>
           </div>
         </header>
-        <main className="flex-1 w-full max-w-6xl mx-auto p-6 md:p-10 bg-black">
+        <main className="flex-1 w-full  mx-auto p-6 md:p-10 bg-black">
           {children}
         </main>
       </body>
