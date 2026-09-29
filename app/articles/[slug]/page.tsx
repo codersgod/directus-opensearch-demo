@@ -1,4 +1,3 @@
-import { getArticle } from "@/lib/directus";
 import { notFound } from "next/navigation";
 
 type Props = {
@@ -6,7 +5,13 @@ type Props = {
     slug: string;
   }>;
 };
-
+function getArticle(slug: string) {
+  // Mock implementation for demonstration purposes
+  return Promise.resolve({
+    title: `Article: ${slug}`,
+    content: `Content for article with slug: ${slug}`,
+  });
+}
 export default async function ArticlePage({ params }: Props) {
   const { slug } = await params;
 
