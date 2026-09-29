@@ -22,9 +22,8 @@ export default async function ArticlePage({ params }: Props) {
   }
 
   return (
-    <main className="max-w-4xl mx-auto p-10">
+    <main className="max-w-4xl mx-auto p-10 text-white">
       <h1 className="text-4xl font-bold">{article.title}</h1>
-
       <p className="mt-6">{article.content}</p>
     </main>
   );
