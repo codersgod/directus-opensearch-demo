@@ -1,5 +1,6 @@
+import Image from "next/image";
 import React from "react";
-
+import DIRECTUS_ARCH from "@/images/directus_arch.jpg";
 /* ─────────────────────────────────────────────
    Reusable UI Components
    ───────────────────────────────────────────── */
@@ -209,6 +210,13 @@ export default function LearnDirectusPage() {
               authoring.
             </Bullet>
           </BulletList>
+          <Image
+            src={DIRECTUS_ARCH}
+            alt="Three-Layer Architecture"
+            width={800}
+            height={400}
+            className="mt-4 rounded-lg mx-auto"
+          />
         </Card>
 
         {/* ═══════════════════════════════════════
@@ -869,6 +877,7 @@ const result = await client.request(
             </Bullet>
           </BulletList>
           <CodeBlock language="typescript">{`import { readActivities, readRevisions } from '@directus/sdk';
+import { DIRECTUS_TOKEN } from '@/lib/directus';
 
 // 1. Audit log — last 5 system changes
 const systemAudit = await client.request(readActivities({ limit: 5 }));
