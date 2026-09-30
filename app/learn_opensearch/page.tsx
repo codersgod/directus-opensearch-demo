@@ -2758,9 +2758,9 @@ PUT /logs-2026-08/_settings
               degrade cluster query parallelism and complicate node recoveries.
             </Bullet>
             <Bullet>
-              Maintain a maximum cluster ratio of <B>20 shards per 1GB of
-              configured JVM Heap memory</B> across all node servers to protect
-              overall infrastructure health.
+              Maintain a maximum cluster ratio of{" "}
+              <B>20 shards per 1GB of configured JVM Heap memory</B> across all
+              node servers to protect overall infrastructure health.
             </Bullet>
             <Bullet>
               Automate indices creation by utilizing standardized{" "}
@@ -2818,6 +2818,214 @@ PUT /logs-2026-08/_settings
               active shards off the impacted disk drive).
             </Bullet>
           </BulletList>
+        </Card>
+
+        {/* OPENSEARCH SDK */}
+
+        <Card>
+          <Topic emoji="🚀">Open-Source OpenSearch Architecture</Topic>
+
+          <SubTopic>1. Infrastructure &amp; Runtime</SubTopic>
+          <BulletList>
+            <Bullet>
+              Deploy the official open-source <B>OpenSearch Docker Image</B>{" "}
+              locally or via orchestration tools to spin up an isolated cluster
+              node instantly.
+            </Bullet>
+            <Bullet>
+              Explicitly configure system memory boundaries using{" "}
+              <B>OPENSEARCH_JAVA_OPTS</B>
+              to prevent the engine process from crashing due to unexpected JVM
+              heap exhaustion.
+            </Bullet>
+          </BulletList>
+          <CodeBlock language="yaml">{`# docker-compose.yml
+version: '3.8'
+services:
+  opensearch:
+    image: opensearchproject/opensearch:latest
+    container_name: opensearch-local
+    environment:
+      - cluster.name=opensearch-cluster
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m" # Allocates minimum and maximum heap memory
+      - DISABLE_INSTALL_DEMO_CONFIG=false       # Enables the default admin/admin demo credential configuration
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "9200:9200"
+      - "9600:9600" # Performance Analyzer monitoring port`}</CodeBlock>
+
+          <SubTopic>2. Connection &amp; Client Instantiation</SubTopic>
+          <BulletList>
+            <Bullet>
+              Implement a strict <B>Connection Singleton Pattern</B> inside your
+              Node.js layer to eliminate connection pool leaks during Next.js
+              hot-reloads.
+            </Bullet>
+            <Bullet>
+              Set up robust client configuration parameters to gracefully handle{" "}
+              <B>Self-Signed TLS Certificates</B>
+              common in local container networks.
+            </Bullet>
+          </BulletList>
+          <CodeBlock language="typescript">{`// lib/opensearch.ts
+import { Client } from '@opensearch-project/opensearch';
+
+// Extend the Node global interface to keep track of our connection token across runtime state reloads
+const globalForOpenSearch = global as unknown as { opensearchClient: Client };
+
+export const opensearchClient = globalForOpenSearch.opensearchClient || new Client({
+  node: process.env.OPENSEARCH_NODE_URL || 'https://localhost:9200',
+  auth: { 
+    username: process.env.OPENSEARCH_USERNAME || 'admin', 
+    password: process.env.OPENSEARCH_PASSWORD || 'admin' 
+  },
+  ssl: { 
+    // Set to true in your production environments when hosting with a verified Certificate Authority (CA)
+    rejectUnauthorized: process.env.NODE_ENV === 'production' 
+  }
+});
+
+if (process.env.NODE_ENV !== 'production') globalForOpenSearch.opensearchClient = opensearchClient;`}</CodeBlock>
+
+          <SubTopic>3. Schema Configuration (Mappings)</SubTopic>
+          <BulletList>
+            <Bullet>
+              Define explicit database schemas via <B>Mappings</B> to assign
+              fields as full-text analyzed tokens or exact-match keywords.
+            </Bullet>
+            <Bullet>
+              Leverage the <B>Multi-field parameter</B> configuration to
+              evaluate a single JSON key simultaneously as a partial matched
+              text field and a strict sorting keyword token.
+            </Bullet>
+          </BulletList>
+          <CodeBlock language="typescript">{`// scripts/init-index.ts
+import { opensearchClient } from '../lib/opensearch';
+
+async function setupIndex() {
+  const indexName = 'products';
+  
+  const exists = await opensearchClient.indices.exists({ index: indexName });
+  if (exists.body) return;
+
+  await opensearchClient.indices.create({
+    index: indexName,
+    body: {
+      settings: {
+        index: { number_of_shards: 1, number_of_replicas: 0 } // Optimal local defaults
+      },
+      mappings: {
+        properties: {
+          title: { 
+            type: 'text', 
+            analyzer: 'standard',
+            fields: {
+              raw: { type: 'keyword' } // Used for strict alphabetical sorting or aggregations
+            }
+          },
+          category: { type: 'keyword' }, // Used for exact-match filters (e.g., tags, brand names)
+          price: { type: 'float' },
+          createdAt: { type: 'date' }
+        }
+      }
+    }
+  });
+}`}</CodeBlock>
+
+          <SubTopic>4. Data Ingestion &amp; Sync Workflows</SubTopic>
+          <BulletList>
+            <Bullet>
+              Pipe database records into OpenSearch using the <B>Bulk API</B> to
+              minimize HTTP overhead and bypass individual document ingestion
+              bottlenecks.
+            </Bullet>
+            <Bullet>
+              Format operations using the required alternating sequence array
+              pattern to bundle both the action instruction metadata object and
+              data body payloads correctly.
+            </Bullet>
+          </BulletList>
+          <CodeBlock language="typescript">{`// lib/ingest.ts
+import { opensearchClient } from './opensearch';
+
+interface ProductPayload {
+  id: string;
+  title: string;
+  category: string;
+  price: number;
+}
+
+async function bulkIngest(products: ProductPayload[]) {
+  // Map array items to OpenSearch format: Alternating action item and payload item pairs
+  const body = products.flatMap(doc => [
+    { index: { _index: 'products', _id: doc.id } },
+    { title: doc.title, category: doc.category, price: doc.price, createdAt: new Date() }
+  ]);
+
+  if (body.length === 0) return;
+
+  const response = await opensearchClient.bulk({ 
+    refresh: true, // Forces items to be instantly visible to downstream search requests
+    body 
+  });
+
+  if (response.body.errors) {
+    console.error('Some documents failed to ingest:', response.body.items);
+  }
+}`}</CodeBlock>
+
+          <SubTopic>5. Secure Search Execution &amp; UI</SubTopic>
+          <BulletList>
+            <Bullet>
+              Isolate database connection credentials entirely on the backend by
+              building a secure proxy layer via <B>Next.js API Routes</B>.
+            </Bullet>
+            <Bullet>
+              Integrate a <B>Multi-match query</B> featuring flexible parameters
+              like fuzziness typing to compensate dynamically for human spelling
+              typos during typing actions.
+            </Bullet>
+          </BulletList>
+          <CodeBlock language="typescript">{`// app/api/search/route.ts
+import { NextResponse } from 'next/server';
+import { opensearchClient } from '@/lib/opensearch';
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const searchTerm = searchParams.get('q') || '';
+
+    const response = await opensearchClient.search({
+      index: 'products',
+      body: {
+        query: {
+          multi_match: {
+            query: searchTerm,
+            fields: ['title^2', 'category'], // Weights title relevance higher than category strings
+            fuzziness: 'AUTO',                // Gracefully handles 1-2 character spelling errors
+          }
+        }
+      }
+    });
+
+    // Unpack response objects and normalize results format for easier frontend usage
+    const results = response.body.hits.hits.map((hit: any) => ({
+      id: hit._id,
+      score: hit._score,
+      ...hit._source
+    }));
+
+    return NextResponse.json({ success: true, data: results });
+  } catch (error: any) {
+    console.error('Search API processing failed:', error);
+    return NextResponse.json({ success: false, error: 'Database query failed' }, { status: 500 });
+  }
+}`}</CodeBlock>
         </Card>
 
         {/* ═══════════════════════════════════════
