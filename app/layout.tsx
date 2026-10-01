@@ -57,13 +57,6 @@ export default function RootLayout({
                 <SiPostgresql  className="inline-block mr-2" />
                  PostgreSQL
               </Link>
-              <Link
-                href="/learn_react_router"
-                className="transition-colors bg-transparent hover:bg-gradient-to-r from-blue-700 to-violet-700 border rounded-md p-2 border-slate-200 w-fit flex"
-              >
-                <SiReactrouter   className="inline-block mr-2" />
-                 React Router
-              </Link>
             </div>
             <nav className="flex gap-6 text-sm font-medium">
               <Link href="/" className="hover:text-blue-400 transition-colors">

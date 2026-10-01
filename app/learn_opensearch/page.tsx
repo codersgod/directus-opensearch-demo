@@ -2818,6 +2818,13 @@ PUT /logs-2026-08/_settings
               active shards off the impacted disk drive).
             </Bullet>
           </BulletList>
+          <SubTopic>Searching data</SubTopic>
+          <p>
+            When you add a document to an index, OpenSearch records each word in
+            a specialized data structure. When you search, OpenSearch uses this
+            structure to quickly find the documents that contain your query
+            words and then ranks those documents by how well they match.
+          </p>
         </Card>
 
         {/* OPENSEARCH SDK */}
@@ -3095,6 +3102,193 @@ volumes:
 
 networks:
   opensearch-net:`}</CodeBlock>
+        </Card>
+
+        <Card>
+          <Topic emoji="🛠️">
+            Advanced OpenSearch Production Implementations
+          </Topic>
+
+          <SubTopic>1. OpenSearch Data Streams (Append-Only Datasets)</SubTopic>
+          <BulletList>
+            <Bullet>
+              Deploy a <B>Data Stream</B> to automatically abstract multiple
+              time-series backing indices under a single, permanent read/write
+              endpoint.
+            </Bullet>
+            <Bullet>
+              Always configure matching <B>Index Templates</B> and an Index
+              State Management (ISM) policy to ensure backing shards rollover
+              gracefully without dropping traffic.
+            </Bullet>
+          </BulletList>
+          <CodeBlock language="json">{`// 1. Create a template matching the data stream naming convention
+PUT /_index_template/logs-application-template
+{
+  "index_patterns": ["logs-app-*"],
+  "data_stream": { }, // Enables Data Stream behavior for this pattern
+  "template": {
+    "settings": { "index.number_of_shards": 2, "index.lifecycle.name": "30_day_retention" },
+    "mappings": {
+      "properties": {
+        "@timestamp": { "type": "date" }, // Required tracking field
+        "message": { "type": "text" },
+        "status": { "type": "keyword" }
+      }
+    }
+  }
+}
+
+// 2. Initialize the stream instantly by writing a document
+POST /logs-app-prod/_doc
+{
+  "@timestamp": "2026-09-30T12:00:00Z",
+  "message": "User login event executed",
+  "status": "success"
+}`}</CodeBlock>
+
+          <SubTopic>
+            2. Relational Mappings (Nested vs. Join Field Types)
+          </SubTopic>
+          <BulletList>
+            <Bullet>
+              Isolate sub-document arrays using the <B>nested</B> data type to
+              prevent OpenSearch from flattening object relationships into
+              scrambled arrays.
+            </Bullet>
+            <Bullet>
+              Leverage <B>join</B> fields sparingly for strict Parent/Child
+              entities to completely update child documents without incurring
+              the cost of reindexing entire parent structures.
+            </Bullet>
+          </BulletList>
+          <CodeBlock language="json">{`// PUT /e-commerce-v1
+{
+  "mappings": {
+    "properties": {
+      "product_name": { "type": "text" },
+      "variants": {
+        "type": "nested", // Safeguards internal property cross-matching
+        "properties": {
+          "color": { "type": "keyword" },
+          "size": { "type": "keyword" }
+        }
+      }
+    }
+  }
+}
+
+// Executing a strict query against nested properties
+POST /e-commerce-v1/_search
+{
+  "query": {
+    "nested": {
+      "path": "variants",
+      "query": {
+        "bool": {
+          "must": [
+            { "term": { "variants.color": "red" } },
+            { "term": { "variants.size": "XL" } }
+          ]
+        }
+      }
+    }
+  }
+}`}</CodeBlock>
+
+          <SubTopic>3. Ingest Pipelines (Server-Side Text Extraction)</SubTopic>
+          <BulletList>
+            <Bullet>
+              Intercept incoming raw payloads inside the cluster using{" "}
+              <B>Ingest Pipelines</B> to normalize unorganized data metrics
+              before physical indexing happens.
+            </Bullet>
+            <Bullet>
+              Utilize the <B>grok processor</B> to safely slice structured
+              regular-expression match patterns out of noisy infrastructure
+              application stacktraces.
+            </Bullet>
+          </BulletList>
+          <CodeBlock language="json">{`// PUT /_ingest/pipeline/parse_nginx_logs
+{
+  "description": "Extracts operational tracking parameters from raw string logs",
+  "processors": [
+    {
+      "grok": {
+        "field": "raw_message",
+        "patterns": ["%{IPORHOST:client_ip} %{WORD:method} %{URIPATHPARAM:request} %{NUMBER:status:int}"]
+      }
+    },
+    {
+      "geoip": { // Appends geographic metadata based on the extracted IP
+        "field": "client_ip",
+        "target_field": "geo_location"
+      }
+    }
+  ]
+}`}</CodeBlock>
+
+          <SubTopic>4. Zero-Downtime Schema Reindexing APIs</SubTopic>
+          <BulletList>
+            <Bullet>
+              Execute a backend data migration using the <B>_reindex API</B> to
+              seamlessly transition raw index records into an updated, optimized
+              mapping blueprint.
+            </Bullet>
+            <Bullet>
+              Incorporate the <B>wait_for_completion=false</B> query token flags
+              on massive databases to track long-running data mutations
+              asynchronously without risking an HTTP timeout crash.
+            </Bullet>
+          </BulletList>
+          <CodeBlock language="json">{`// POST /_reindex?wait_for_completion=false
+{
+  "source": {
+    "index": "products_v1" // Legacy index containing flawed data types
+  },
+  "dest": {
+    "index": "products_v2", // Target index built with optimized mappings
+    "op_type": "index"
+  },
+  "script": {
+    "source": "if (ctx._source.price == null) { ctx._source.price = 0.0 }", // Cleans data data mid-flight
+    "lang": "painless"
+  }
+}
+
+// Checking background processing worker task health status
+GET /_tasks/TASK_ID_STRING`}</CodeBlock>
+
+          <SubTopic>
+            5. Shard Routing Parameters (Multi-Tenant Isolate Routing)
+          </SubTopic>
+          <BulletList>
+            <Bullet>
+              Enforce explicit <B>Custom Routing Keys</B> on high-frequency
+              indices to direct all records belonging to a particular user or
+              organization to the exact same shard.
+            </Bullet>
+            <Bullet>
+              Accelerate multi-tenant query lookups by bypassing heavy
+              scatter-gather tasks, forcing the engine to target only one known
+              primary disk location.
+            </Bullet>
+          </BulletList>
+          <CodeBlock language="json">{`// Indexing a new document directly onto a specialized shard path
+PUT /tenant_index/_doc/doc_101?routing=company_abc_id
+{
+  "tenant_id": "company_abc_id",
+  "display_title": "Enterprise Cloud Blueprint Docs",
+  "confidential_status": true
+}
+
+// Executing search isolation targeting a specific physical shard footprint
+POST /tenant_index/_search?routing=company_abc_id
+{
+  "query": {
+    "match": { "display_title": "Cloud" }
+  }
+}`}</CodeBlock>
         </Card>
 
         {/* ── Footer ── */}
